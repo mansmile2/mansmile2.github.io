@@ -1,206 +1,93 @@
-var Game      = Game      || {};
-var Keyboard  = Keyboard  || {}; 
-var Component = Component || {};
+const startBtn = document.querySelector("#start");
+const screens = document.querySelectorAll(".screen");
+const timeList = document.querySelector("#time-list");
+const timeEl = document.querySelector("#time");
+const board = document.querySelector("#board");
+const colors = ["#3cc", "#e6ffff", "#ffe6e6", "#fcc", "#c00", "#933"];
+let time = 0;
+let score = 0;
 
+startBtn.addEventListener("click", (event) => {
+  event.preventDefault();
+  screens[0].classList.add("up");
+});
 
-Keyboard.Keymap = {
-  37: 'left',
-  38: 'up',
-  39: 'right',
-  40: 'down'
-};
-
-
-Keyboard.ControllerEvents = function() {
-  
-
-  var self      = this;
-  this.pressKey = null;
-  this.keymap   = Keyboard.Keymap;
-  
-
-  document.onkeydown = function(event) {
-    self.pressKey = event.which;
-  };
-  
-
-  this.getKey = function() {
-    return this.keymap[this.pressKey];
-  };
-};
-
-
-Component.Stage = function(canvas, conf) {  
-  
-  // Sets
-  this.keyEvent  = new Keyboard.ControllerEvents();
-  this.width     = canvas.width;
-  this.height    = canvas.height;
-  this.length    = [];
-  this.food      = {};
-  this.score     = 0;
-  this.direction = 'right';
-  this.conf      = {
-    cw   : 10,
-    size : 5,
-    fps  : 1000
-  };
-  
-
-  if (typeof conf == 'object') {
-    for (var key in conf) {
-      if (conf.hasOwnProperty(key)) {
-        this.conf[key] = conf[key];
-      }
-    }
+timeList.addEventListener("click", (event) => {
+  if (event.target.classList.contains("time-btn")) {
+    time = parseInt(event.target.getAttribute("data-time"));
+    screens[1].classList.add("up");
+    startGame();
   }
-  
-};
+});
 
-
-Component.Snake = function(canvas, conf) {
-  
-
-  this.stage = new Component.Stage(canvas, conf);
-  
-
-  this.initSnake = function() {
-    
-
-    for (var i = 0; i < this.stage.conf.size; i++) {
-      
-
-      this.stage.length.push({x: i, y:0});
-    }
-  };
-  
-
-  this.initSnake();
-  
-
-  this.initFood = function() {
-    
-
-    this.stage.food = {
-      x: Math.round(Math.random() * (this.stage.width - this.stage.conf.cw) / this.stage.conf.cw), 
-      y: Math.round(Math.random() * (this.stage.height - this.stage.conf.cw) / this.stage.conf.cw), 
-    };
-  };
-  
-  // Init Food
-  this.initFood();
-  
-  // Restart Stage
-  this.restart = function() {
-    this.stage.length            = [];
-    this.stage.food              = {};
-    this.stage.score             = 0;
-    this.stage.direction         = 'right';
-    this.stage.keyEvent.pressKey = null;
-    this.initSnake();
-    this.initFood();
-  };
-};
-
-
-Game.Draw = function(context, snake) {
-  
-
-  this.drawStage = function() {
-    
-
-    var keyPress = snake.stage.keyEvent.getKey(); 
-    if (typeof(keyPress) != 'undefined') {
-      snake.stage.direction = keyPress;
-    }
-    
-
-    context.fillStyle = "white";
-    context.fillRect(0, 0, snake.stage.width, snake.stage.height);
-    
-
-    var nx = snake.stage.length[0].x;
-    var ny = snake.stage.length[0].y;
-    
-
-    switch (snake.stage.direction) {
-      case 'right':
-        nx++;
-        break;
-      case 'left':
-        nx--;
-        break;
-      case 'up':
-        ny--;
-        break;
-      case 'down':
-        ny++;
-        break;
-    }
-    
-
-    if (this.collision(nx, ny) == true) {
-      snake.restart();
-      return;
-    }
-    
-    // Logic of Snake food
-    if (nx == snake.stage.food.x && ny == snake.stage.food.y) {
-      var tail = {x: nx, y: ny};
-      snake.stage.score++;
-      snake.initFood();
-    } else {
-      var tail = snake.stage.length.pop();
-      tail.x   = nx;
-      tail.y   = ny;  
-    }
-    snake.stage.length.unshift(tail);
-    
-    
-    for (var i = 0; i < snake.stage.length.length; i++) {
-      var cell = snake.stage.length[i];
-      this.drawCell(cell.x, cell.y);
-    }
-    
-
-    this.drawCell(snake.stage.food.x, snake.stage.food.y);
-    
-
-    context.fillText('Score: ' + snake.stage.score, 5, (snake.stage.height - 5));
-  };
-  
-
-  this.drawCell = function(x, y) {
-    context.fillStyle = 'rgb(17, 238, 9)';
-    context.beginPath();
-    context.arc((x * snake.stage.conf.cw + 6), (y * snake.stage.conf.cw + 6), 4, 0, 2*Math.PI, false);    
-    context.fill();
-  };
-  
-
-  this.collision = function(nx, ny) {  
-    if (nx == -1 || nx == (snake.stage.width / snake.stage.conf.cw) || ny == -1 || ny == (snake.stage.height / snake.stage.conf.cw)) {
-      return true;
-    }
-    return false;    
+board.addEventListener("click", (event) => {
+  if (event.target.classList.contains("circle")) {
+    score++;
+    event.target.remove();
+    createRandomCircle();
   }
-};
+});
 
+//DEBUG
+//startGame()
 
+function startGame() {
+  setInterval(decreaseTime, 1000);
+  createRandomCircle();
+  setTime(time);
+}
 
-Game.Snake = function(elementId, conf) {
-  
+function decreaseTime() {
+  if (time === 0) {
+    finishGame();
+  } else {
+    let current = --time;
+    if (current < 10) {
+      current = `0${current}`;
+    }
+    setTime(current);
+  }
+}
 
-  var canvas   = document.getElementById(elementId);
-  var context  = canvas.getContext("2d");
-  var snake    = new Component.Snake(canvas, conf);
-  var gameDraw = new Game.Draw(context, snake);
-  
+function setTime(value) {
+  timeEl.innerHTML = `00:${value}`;
+}
 
-  setInterval(function() {gameDraw.drawStage();}, snake.stage.conf.fps);
-};
+function finishGame() {
+  timeEl.parentNode.classList.add("hide");
+  board.innerHTML = `<h1>Cчет: <span class="primary">${score}</span></h1>	`;
+}
 
+function createRandomCircle() {
+  const circle = document.createElement("div");
+  const size = getRandomNumber(10, 60);
+  const color = getRandomColor();
+  const { width, height } = board.getBoundingClientRect();
 
-window.onload = function() {
-  var snake = new Game.Snake('stage', {fps: 100, size: 4});
-};
+  const x = getRandomNumber(0, width - size);
+  const y = getRandomNumber(0, height - size);
+
+  circle.classList.add("circle");
+  circle.style.width = `${size}px`;
+  circle.style.height = `${size}px`;
+  circle.style.top = `${y}px`;
+  circle.style.left = `${x}px`;
+  circle.style.background = `linear-gradient(90deg, ${color} 0%,  ${color} 100%)`;
+
+  board.append(circle);
+}
+
+function getRandomNumber(min, max) {
+  return Math.round(Math.random() * (max - min) + min);
+}
+
+function getRandomColor() {
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+function setColor(event) {
+  const element = event.target;
+  const color = getRandomColor();
+  element.style.backgroundColor = color;
+  element.style.boxShadow = `0 0 2px ${color}, 0 0 20px ${color}`;
+}
