@@ -3,9 +3,12 @@ const screens = document.querySelectorAll(".screen");
 const timeList = document.querySelector("#time-list");
 const timeEl = document.querySelector("#time");
 const board = document.querySelector("#board");
-const colors = ["#3cc", "#e6ffff", "#ffe6e6", "#fcc", "#c00", "#933"];
+const colors = ["#3cc","#e6ffff","#ffe6e6","#fcc","#c00","#933"];
+
 let time = 0;
 let score = 0;
+let highScore = 0;
+let timeIntervalId;
 
 startBtn.addEventListener("click", (event) => {
   event.preventDefault();
@@ -28,17 +31,19 @@ board.addEventListener("click", (event) => {
   }
 });
 
-//DEBUG
-//startGame()
-
 function startGame() {
-  setInterval(decreaseTime, 1000);
+  board.innerHTML = "";
+  if(timeIntervalId) {
+    clearInterval(timeIntervalId);
+  }
+  timeIntervalId = setInterval(decreaseTime, 1000);
   createRandomCircle();
   setTime(time);
 }
 
 function decreaseTime() {
   if (time === 0) {
+    checkHighScore(score);
     finishGame();
   } else {
     let current = --time;
@@ -53,9 +58,33 @@ function setTime(value) {
   timeEl.innerHTML = `00:${value}`;
 }
 
+
 function finishGame() {
-  timeEl.parentNode.classList.add("hide");
-  board.innerHTML = `<h1>Cчет: <span class="primary">${score}</span></h1>	`;
+  timeEl.innerHTML = `<h2>Рекорд: <span class="primary">${highScore}</span></h2>`;
+  board.innerHTML = `<h1>Счет: <span class="primary">${score}</span></h1>`;
+  const startAgainBtn = document.createElement("a");
+  startAgainBtn.setAttribute("href", "#");
+  startAgainBtn.classList.add("start");
+  startAgainBtn.setAttribute("id", "start-again");
+  startAgainBtn.innerText = "Играть заново";
+  board.append(startAgainBtn);
+  const startAgainBtnEl = document.querySelector("#start-again");
+  const restartGame = () => {
+    time = 0;
+    score = 0;
+    board.classList.remove("hide");
+    screens[0].classList.remove("up");
+    screens[1].classList.remove("up");
+    timeEl.parentNode.classList.remove("hide");
+    startGame();
+  };
+  startAgainBtnEl.addEventListener("click", restartGame);
+}
+
+function checkHighScore(score) {
+  if (score > highScore) {
+    highScore = score;
+  }
 }
 
 function createRandomCircle() {
@@ -72,7 +101,7 @@ function createRandomCircle() {
   circle.style.height = `${size}px`;
   circle.style.top = `${y}px`;
   circle.style.left = `${x}px`;
-  circle.style.background = `linear-gradient(90deg, ${color} 0%,  ${color} 100%)`;
+  circle.style.background = `linear-gradient(90deg, ${color} 0%, ${color} 100%)`;
 
   board.append(circle);
 }
